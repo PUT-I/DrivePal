@@ -1,0 +1,5 @@
+include ':app'
+
+include ':AndroidTFLiteDetector.lib'
+project(':AndroidTFLiteDetector.lib').projectDir =
+        new File(settingsDir, '../backend-ml/AndroidTFLiteDetector/lib')

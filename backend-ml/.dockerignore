@@ -1,0 +1,16 @@
+ModelServingServer/.run/
+ModelServingServer/venv/
+ModelServingServer/requirements.txt
+
+AndroidTFLiteDetectorExample/
+
+AndroidTFLiteDetector/.idea/
+AndroidTFLiteDetector/build/
+AndroidTFLiteDetector/gradle/
+AndroidTFLiteDetector/lib/src/java
+AndroidTFLiteDetector/lib/src/java
+
+darknet/
+
+README.md
+.gitignore

@@ -1,0 +1,79 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory app:title="Detection">
+
+        <ListPreference
+            android:id="@+id/modelCategory"
+            app:defaultValue="YOLO_V4_TINY_512_DRIVEPAL"
+            app:entries="@array/model_entries"
+            app:entryValues="@array/model_values"
+            app:key="model"
+            app:title="@string/model"
+            app:useSimpleSummaryProvider="true" />
+
+        <CheckBoxPreference
+            android:id="@+id/useRemoteDetectorCheckbox"
+            app:defaultValue="false"
+            app:key="useRemoteDetector"
+            app:title="Use remote detector" />
+
+        <SeekBarPreference
+            android:id="@+id/stopSpeedLimit"
+            app:defaultValue="40"
+            app:key="stopSpeedLimit"
+            app:title="Threshold for stop sign [km/h]"
+            app:showSeekBarValue="true" />
+
+        <SeekBarPreference
+            android:id="@+id/pedestrianCrossingSpeedLimit"
+            app:defaultValue="40"
+            app:key="pedestrianCrossingSpeedLimit"
+            app:showSeekBarValue="true"
+            app:title="Threshold for pedestrian crossing sign [km/h]" />
+
+        <SeekBarPreference
+            android:id="@+id/personSpeedLimit"
+            app:defaultValue="40"
+            app:key="personSpeedLimit"
+            app:title="Threshold for person [km/h]"
+            app:showSeekBarValue="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="Diagnostics">
+        <CheckBoxPreference
+            android:id="@+id/diagnosticsCheckbox"
+            app:defaultValue="true"
+            app:key="diagnostics"
+            app:title="@string/diagnostic" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="Developer">
+        <EditTextPreference
+            android:id="@+id/diagnosticServerUrl"
+            app:defaultValue="http://server.drivepal.pl:5000"
+            app:key="diagnosticServerUrl"
+            app:title="Diagnostic server url"
+            app:useSimpleSummaryProvider="true" />
+
+        <EditTextPreference
+            android:id="@+id/detectorServerUrl"
+            app:defaultValue="http://server.drivepal.pl:5001"
+            app:key="detectorServerUrl"
+            app:title="Detector server url"
+            app:useSimpleSummaryProvider="true" />
+
+        <CheckBoxPreference
+            android:id="@+id/boundingBoxesCheckbox"
+            app:defaultValue="true"
+            app:key="boundingBoxes"
+            app:title="@string/bounding_boxes" />
+
+        <CheckBoxPreference
+            android:id="@+id/testSpeed"
+            app:defaultValue="false"
+            app:key="testSpeed"
+            app:title="@string/test_speed" />
+    </PreferenceCategory>
+
+</PreferenceScreen>

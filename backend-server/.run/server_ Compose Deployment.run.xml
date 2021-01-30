@@ -1,0 +1,15 @@
+<component name="ProjectRunConfigurationManager">
+    <configuration default="false" name="server: Compose Deployment" type="docker-deploy"
+                   factoryName="docker-compose.yml" singleton="false" server-name="Docker">
+        <deployment type="docker-compose.yml">
+            <settings>
+                <option name="commandLineOptions" value="--build"/>
+                <option name="sourceFilePath" value="docker/server-docker-compose.yml"/>
+            </settings>
+        </deployment>
+        <method v="2">
+            <option name="RunConfigurationTask" enabled="true" run_configuration_name="Maven package"
+                    run_configuration_type="MavenRunConfiguration"/>
+        </method>
+    </configuration>
+</component>

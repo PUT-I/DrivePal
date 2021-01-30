@@ -1,0 +1,4 @@
+classes = 16
+train  = data/drivepal-train.txt
+names = data/drivepal.names
+backup = backup-drivepal_512

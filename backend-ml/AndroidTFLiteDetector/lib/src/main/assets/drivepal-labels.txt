@@ -1,0 +1,16 @@
+Sign pedestrian crossing
+Sign children
+Sign bikers
+Sign traffic ban
+Sign no entry
+Sign stop
+Sign speed 20
+Sign speed 30
+Sign speed 40
+Sign speed 50
+Sign speed 60
+Sign speed 70
+Sign speed 80
+Sign speed 100
+Sign pedestrian crossing
+Person

@@ -1,0 +1,7 @@
+Test endpoint for checking if server is up
+---
+responses:
+  200:
+    description: Server is up
+    examples:
+      "ok"

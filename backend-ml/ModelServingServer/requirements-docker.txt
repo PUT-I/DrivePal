@@ -1,0 +1,6 @@
+Flask==1.1.2
+flasgger==0.9.5
+tensorflow-cpu==2.4.0
+numpy==1.19.3
+orjson==3.4.6
+cheroot==8.5.1

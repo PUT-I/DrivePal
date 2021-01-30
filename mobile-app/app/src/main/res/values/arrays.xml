@@ -1,0 +1,12 @@
+<resources>
+    <!-- Reply Preference -->
+    <string-array name="model_entries">
+        <item>Performance</item>
+        <item>Accuracy</item>
+    </string-array>
+
+    <string-array name="model_values">
+        <item>YOLO_V4_TINY_384_DRIVEPAL</item>
+        <item>YOLO_V4_TINY_512_DRIVEPAL</item>
+    </string-array>
+</resources>

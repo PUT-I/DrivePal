@@ -1,0 +1,16 @@
+server:
+  port: 5000
+spring:
+  datasource:
+    url: jdbc:postgresql://server.drivepal.pl:5432/postgres
+    username: postgres
+    password: postgres
+    continue-on-error: true
+    driver-class-name: org.postgresql.Driver
+    initialization-mode: never
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    generate-ddl: true
+    show-sql: true
+    hibernate:
+      ddl-auto: update

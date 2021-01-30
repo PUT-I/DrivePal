@@ -1,0 +1,70 @@
+version: "3.8"
+services:
+
+  zerotier:
+    image: zerotier-dns
+    container_name: zerotier_dns
+    build:
+      context: ../docker
+      dockerfile: ./zerotier.Dockerfile
+    ports:
+      - "53:53/udp"
+    networks:
+      - back
+
+  model-server:
+    image: dps-model-server
+    container_name: dps_model_server
+    build:
+      context: ../../backend-ml/
+      dockerfile: ./ModelServingServer/docker/Dockerfile
+    ports:
+      - "5001:5001"
+    networks:
+      - back
+
+  db:
+    image: postgres:13.0
+    container_name: dps_db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - back
+
+  server:
+    image: dps-server
+    container_name: dps_server
+    build:
+      context: ../
+      dockerfile: ./docker/server.Dockerfile
+    environment:
+      - server.port=5000
+      - spring.datasource.url=jdbc:postgresql://dps_db:5432/postgres
+      - spring.datasource.username=postgres
+      - spring.datasource.password=postgres
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+    networks:
+      - back
+
+  dashboard:
+    image: dps-dashboard
+    container_name: dps_dashboard
+    build:
+      context: ../../frontend-dashboard/
+      dockerfile: ./docker/Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    networks:
+      - back
+
+networks:
+  back:
+    driver: bridge

@@ -1,0 +1,37 @@
+Detection endpoint
+---
+parameters:
+  - name: body
+    in: body
+    required: true
+    schema:
+      required:
+        - detectionModel
+        - iouThreshold
+        - scoreThreshold
+        - image
+      properties:
+        detectionModel:
+          type: string
+          description: enum value by which model is chosen.
+        iouThreshold:
+          type: string
+          description: Threshold for NMS function.
+        scoreThreshold:
+          type: string
+          description: Minimum detection accuracy.
+        image:
+          type: string
+          description: Base64 encoded image.
+responses:
+  200:
+    description: Detection successful
+    properties:
+      scores:
+        type: list
+        description: list of detection scores.
+      bboxes:
+        type: list
+        description: list of detection bounding boxes.
+  404:
+    description: Detection model not found

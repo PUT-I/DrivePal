@@ -1,0 +1,52 @@
+# This file contains all supported configuration options and their default values.
+
+# Network interface to bind to (or "" to bind to all interfaces).  By default, only
+# respond on the ZeroTier interface.  On macOS, there are two ZeroTier interfaces
+# whose names start with "feth" and you should specify the one with the lower number
+# (see https://www.zerotier.com/2019/08/21/how-zerotier-eliminated-kernel-extensions-on-macos/ ).
+interface: ""
+
+# Port to listen on.
+port: 53
+
+# Base domain.  Could be a top-level domain for internal use only (e.g., zt) or
+# a domain name with one or more subdomains (e.g., internal.yourdomain.com).
+# By default, map members to "<member name>.zt".
+domain: "drivepal.pl"
+
+# How often to poll the ZeroTier controller in minutes.
+refresh: 30
+
+# Include members that are currently offline.
+include-offline: true
+
+# Enable debug messages.
+debug: false
+
+# An API key for your ZeroTier account (required).
+api-key: "SX66tX8PEOurmjYGOdGLSoWqORNw2bUJ"
+
+# The base API URL for the ZeroTier controller.
+api-url: "https://my.zerotier.com/api"
+
+# ID of the ZeroTier network.  Only one of "network" and "networks" can be
+# specified.  E.g., if domain="zt" and there is a network with ID "123abc" then
+# this would map its members to "<member name>.zt":
+#   network: "123abc"
+network:
+
+# Mappings between subdomains and ZeroTier network IDs.  Only one of "network"
+# and "networks" can be specified.
+networks:
+# E.g., if domain="zt" and there is a network with ID "123abc" then this would
+# map its members to "<member name>.home.zt":
+#   home: "123abc"
+
+# Mappings between round-robin names and regexps to match members.  Names are
+# matched within each network (i.e., if there are members matching a mapping in
+# multiple networks then the name will be defined separately in each).
+round-robin:
+# E.g., if the "home" network defined above had members "k8s-node-23refw" and
+# "k8s-node-09sf8g" this would create a name "k8s-nodes.home.zt" returning one
+# of them at random:
+#   k8s-nodes: "k8s-node-\w"
