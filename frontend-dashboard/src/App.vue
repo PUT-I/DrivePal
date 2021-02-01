@@ -23,14 +23,14 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import "bootstrap/dist/css/bootstrap.css";
 import "bootstrap/dist/js/bootstrap";
 import "bootstrap-vue/dist/bootstrap-vue.css";
+import Vue from "vue";
 
-export default {
-  name: "App",
-};
+export default class App extends Vue {
+}
 </script>
 
 <style>

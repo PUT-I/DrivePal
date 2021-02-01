@@ -49,7 +49,7 @@
             id="detections-table"
             class="shadow-sm"
             :current-page="currentPage"
-            :fields="detection_fields"
+            :fields="detectionFields"
             :items="detections"
             :per-page="perPage"
             bordered
@@ -86,28 +86,38 @@
   </div>
 </template>
 
-<script>
-import DetectionService from "../js/services/DetectionService";
-import $ from 'jquery';
-import Utils from "@/js/Utils";
+<script lang="ts">
+import DetectionService, {Detection, DetectionUrl} from "@/scripts/services/DetectionService";
+import * as $ from 'jquery';
+import Utils from "@/scripts/Utils";
+import Vue from 'vue';
+import Component from 'vue-class-component';
 
-export default {
-  name: "sign-row",
-  data() {
-    return {
-      currentPage: 1,
-      perPage: 10,
-      detections: [],
-      detection_fields: [
-        {key: "id", label: "Id", sortable: true},
-        {key: "timestamp", label: "Timestamp", sortable: true},
-        {key: "modelName", label: "Model Name", sortable: true},
-        {key: "entityUrl", label: "Image", sortable: false},
-        {key: "action", label: "Action", sortable: false}
-      ]
-    };
-  },
-  async mounted() {
+@Component
+class DetectionVerificationList extends Vue {
+  currentPage: number = 1;
+
+  perPage: number = 10;
+
+  detections: DetectionUrl[] = [];
+
+  currentDetections: Detection[] = [];
+
+  detectionFields = [
+    {key: "id", label: "Id", sortable: true},
+    {key: "timestamp", label: "Timestamp", sortable: true},
+    {key: "modelName", label: "Model Name", sortable: true},
+    {key: "entityUrl", label: "Image", sortable: false},
+    {key: "action", label: "Action", sortable: false}
+  ];
+
+  modalDetectionId: number = -1;
+
+  selectedDetectionIndex: number = -1;
+
+  selectedBoundingBox = $();
+
+  async mounted(): Promise<void> {
     const tableContainer = $("#container");
     tableContainer.css("opacity", "0%");
 
@@ -143,162 +153,168 @@ export default {
       text: "Detections downloaded successfully"
     });
     tableContainer.animate({"duration": 400, "opacity": "100%"});
-  },
-  methods: {
-    async prepareModal() {
-      const imgSrc = `http://server.drivepal.pl:5000/api/detection/${this.modalDetectionId}/image`;
-      console.log(`Set modal image src to ${imgSrc}`);
+  }
 
-      const imgOverlay = $("#modal-img-overlay");
-      imgOverlay.hide().empty();
+  async prepareModal(): Promise<void> {
+    const imgSrc = `http://server.drivepal.pl:5000/api/detection/${this.modalDetectionId}/image`;
+    console.log(`Set modal image src to ${imgSrc}`);
 
-      $("#modal-img").hide()
-          .attr("src", imgSrc)
-          .show(400);
+    const imgOverlay = $("#modal-img-overlay");
+    imgOverlay.hide().empty();
 
-      const response = await DetectionService.getDetection(this.modalDetectionId);
-      let data = response.data;
+    $("#modal-img").hide()
+        .attr("src", imgSrc)
+        .show(400);
 
-      this.currentDetections = data.detections;
-      for (const index in this.currentDetections) {
-        const detection = this.currentDetections[index];
-        console.log(detection);
+    const data = (await DetectionService.getDetection(this.modalDetectionId)).data;
 
-        // noinspection JSUnfilteredForInLoop,JSUnresolvedVariable
-        const left = detection.locationLeft * 100.0;
-        // noinspection JSUnfilteredForInLoop,JSUnresolvedVariable
-        const top = detection.locationTop * 100.0;
-        // noinspection JSUnfilteredForInLoop,JSUnresolvedVariable
-        const right = 100.0 - detection.locationRight * 100.0;
-        // noinspection JSUnfilteredForInLoop,JSUnresolvedVariable
-        const bottom = 100.0 - detection.locationBottom * 100.0;
+    this.currentDetections = data.detections;
+    for (const index in this.currentDetections) {
+      const detection = this.currentDetections[index];
+      console.log(detection);
 
-        const location = `left: ${left}%; top: ${top}%; right: ${right}%; bottom: ${bottom}%;`;
+      // noinspection JSUnfilteredForInLoop,JSUnresolvedVariable
+      const left = detection.locationLeft * 100.0;
+      // noinspection JSUnfilteredForInLoop,JSUnresolvedVariable
+      const top = detection.locationTop * 100.0;
+      // noinspection JSUnfilteredForInLoop,JSUnresolvedVariable
+      const right = 100.0 - detection.locationRight * 100.0;
+      // noinspection JSUnfilteredForInLoop,JSUnresolvedVariable
+      const bottom = 100.0 - detection.locationBottom * 100.0;
 
-        let borderColor = "blue";
-        if (detection.valid === true) {
-          borderColor = "green";
-        } else if (detection.valid === false) {
-          borderColor = "red";
-        }
+      const location = `left: ${left}%; top: ${top}%; right: ${right}%; bottom: ${bottom}%;`;
 
-        const boundingBox =
-            `<div style="float:left; position: absolute; border: 3px solid ${borderColor}; ${location};"/>`;
-        imgOverlay.append(boundingBox);
+      let borderColor = "blue";
+      if (detection.valid) {
+        borderColor = "green";
+      } else if (!detection.valid) {
+        borderColor = "red";
       }
 
-      imgOverlay.css("opacity", "0%")
-          .show(400)
-          .animate({duration: 400, opacity: "100%"});
-
-      $("#modal-detection-number").text(`Detection 1 of ${this.currentDetections.length}`);
-
-      this.selectedBoundingBox = $(imgOverlay.children()[0]);
-      this.selectedDetectionIndex = 0;
-      $(this.selectedBoundingBox).css("border-width", "6px");
-
-      const detection = this.currentDetections[this.selectedDetectionIndex];
-      $("#modal-detection-label")
-          .text(`${detection.className} (${Math.round(detection.confidence * 100)}%)`);
-    },
-    nextBoundingBox() {
-      const bounding_boxes = $("#modal-img-overlay").children();
-
-      if (bounding_boxes.length === 0) {
-        return;
-      }
-
-      $(bounding_boxes[this.selectedDetectionIndex]).css("border-width", "3px");
-
-      this.selectedDetectionIndex += 1;
-
-      if (this.selectedDetectionIndex === bounding_boxes.length) {
-        this.selectedDetectionIndex = 0;
-      }
-
-      this.selectedBoundingBox = $(bounding_boxes[this.selectedDetectionIndex]);
-      this.selectedBoundingBox.css("border-width", "6px");
-      $("#modal-detection-number").text(`Detection ${this.selectedDetectionIndex + 1} of ${bounding_boxes.length}`);
-
-      const detection = this.currentDetections[this.selectedDetectionIndex];
-      $("#modal-detection-label").text(`${detection.className} (${Math.round(detection.confidence * 100)}%)`);
-    },
-    previousBoundingBox() {
-      const bounding_boxes = $("#modal-img-overlay").children();
-
-      if (bounding_boxes.length === 1) {
-        return;
-      }
-
-      $(bounding_boxes[this.selectedDetectionIndex]).css("border-width", "3px");
-
-      this.selectedDetectionIndex -= 1;
-
-      if (this.selectedDetectionIndex < 0) {
-        this.selectedDetectionIndex = bounding_boxes.length - 1;
-      }
-
-      this.selectedBoundingBox = $(bounding_boxes[this.selectedDetectionIndex]);
-      this.selectedBoundingBox.css("border-width", "6px");
-      $("#modal-detection-number").text(`Detection ${this.selectedDetectionIndex + 1} of ${bounding_boxes.length}`);
-
-      const detection = this.currentDetections[this.selectedDetectionIndex];
-      $("#modal-detection-label").text(`${detection.className} (${Math.round(detection.confidence * 100)}%)`);
-    },
-    validateDetection() {
-      this.selectedBoundingBox.css("border-color", "green");
-      this.currentDetections[this.selectedDetectionIndex].valid = true;
-    },
-    invalidateDetection() {
-      this.selectedBoundingBox.css("border-color", "red");
-      this.currentDetections[this.selectedDetectionIndex].valid = false;
-    },
-    async saveModal() {
-      console.log("Saving verification results");
-
-      try {
-        await DetectionService.saveVerification(this.currentDetections);
-      } catch {
-        this.$notify({
-          group: "messages",
-          type: "error",
-          title: "Verification failed",
-          text: "Failed to save verification"
-        });
-        return;
-      }
-
-      this.$notify({
-        group: "messages",
-        type: "success",
-        title: "Verification saved",
-        text: "Verification saved successfully"
-      });
-    },
-    sendRowInfo(id) {
-      console.log(id);
-      this.modalDetectionId = id;
-      console.log(`Changed modal image id to : ${id}`);
-    },
-    deleteButtonAction(id, event) {
-      DetectionService.deleteDetectionImage(id);
-      this.$notify({
-        group: "messages",
-        type: "success",
-        title: "Delete success",
-        text: `Detection (id ${id}) deleted successfully`
-      });
-      $(event.target).parent().parent().children('td')
-          .animate({padding: 0})
-          .wrapInner('<div />')
-          .children()
-          .slideUp(() => {
-            $(this).closest('tr').remove();
-          });
+      const boundingBox =
+          `<div style="float:left; position: absolute; border: 3px solid ${borderColor}; ${location};"/>`;
+      imgOverlay.append(boundingBox);
     }
+
+    imgOverlay.css("opacity", "0%")
+        .show(400)
+        .animate({duration: 400, opacity: "100%"});
+
+    $("#modal-detection-number").text(`Detection 1 of ${this.currentDetections.length}`);
+
+    this.selectedBoundingBox = $(imgOverlay.children()[0]);
+    this.selectedDetectionIndex = 0;
+    $(this.selectedBoundingBox).css("border-width", "6px");
+
+    const detection = this.currentDetections[this.selectedDetectionIndex];
+    $("#modal-detection-label")
+        .text(`${detection.className} (${Math.round(detection.confidence * 100)}%)`);
+  }
+
+  nextBoundingBox(): void {
+    const bounding_boxes = $("#modal-img-overlay").children();
+
+    if (bounding_boxes.length === 0) {
+      return;
+    }
+
+    $(bounding_boxes[this.selectedDetectionIndex]).css("border-width", "3px");
+
+    this.selectedDetectionIndex += 1;
+
+    if (this.selectedDetectionIndex === bounding_boxes.length) {
+      this.selectedDetectionIndex = 0;
+    }
+
+    this.selectedBoundingBox = $(bounding_boxes[this.selectedDetectionIndex]);
+    this.selectedBoundingBox.css("border-width", "6px");
+    $("#modal-detection-number").text(`Detection ${this.selectedDetectionIndex + 1} of ${bounding_boxes.length}`);
+
+    const detection = this.currentDetections[this.selectedDetectionIndex];
+    $("#modal-detection-label").text(`${detection.className} (${Math.round(detection.confidence * 100)}%)`);
+  }
+
+  previousBoundingBox(): void {
+    const bounding_boxes = $("#modal-img-overlay").children();
+
+    if (bounding_boxes.length === 1) {
+      return;
+    }
+
+    $(bounding_boxes[this.selectedDetectionIndex]).css("border-width", "3px");
+
+    this.selectedDetectionIndex -= 1;
+
+    if (this.selectedDetectionIndex < 0) {
+      this.selectedDetectionIndex = bounding_boxes.length - 1;
+    }
+
+    this.selectedBoundingBox = $(bounding_boxes[this.selectedDetectionIndex]);
+    this.selectedBoundingBox.css("border-width", "6px");
+    $("#modal-detection-number").text(`Detection ${this.selectedDetectionIndex + 1} of ${bounding_boxes.length}`);
+
+    const detection = this.currentDetections[this.selectedDetectionIndex];
+    $("#modal-detection-label").text(`${detection.className} (${Math.round(detection.confidence * 100)}%)`);
+  }
+
+  validateDetection(): void {
+    this.selectedBoundingBox.css("border-color", "green");
+    this.currentDetections[this.selectedDetectionIndex].valid = true;
+  }
+
+  invalidateDetection(): void {
+    this.selectedBoundingBox.css("border-color", "red");
+    this.currentDetections[this.selectedDetectionIndex].valid = false;
+  }
+
+  async saveModal(): Promise<void> {
+    console.log("Saving verification results");
+
+    try {
+      await DetectionService.saveVerification(this.currentDetections);
+    } catch {
+      this.$notify({
+        group: "messages",
+        type: "error",
+        title: "Verification failed",
+        text: "Failed to save verification"
+      });
+      return;
+    }
+
+    this.$notify({
+      group: "messages",
+      type: "success",
+      title: "Verification saved",
+      text: "Verification saved successfully"
+    });
+  }
+
+  sendRowInfo(id: number): void {
+    console.log(id);
+    this.modalDetectionId = id;
+    console.log(`Changed modal image id to : ${id}`);
+  }
+
+  deleteButtonAction(id: number, event: any): void {
+    DetectionService.deleteDetectionImage(id);
+    this.$notify({
+      group: "messages",
+      type: "success",
+      title: "Delete success",
+      text: `Detection (id ${id}) deleted successfully`
+    });
+    $(event.target).parent().parent().children('td')
+        .animate({padding: 0})
+        .wrapInner('<div />')
+        .children()
+        .slideUp(() => {
+          $(this).closest('tr').remove();
+        });
   }
 }
-;
+
+export default DetectionVerificationList;
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
