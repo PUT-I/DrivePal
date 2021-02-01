@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, {AxiosResponse} from "axios";
 
 const baseUrl = "http://server.drivepal.pl:5000/api/soc-dictionary";
 const config = {
@@ -9,20 +9,27 @@ const config = {
     },
 };
 
+export interface SocDictionaryEntry {
+    id: number,
+    code: string,
+    name: string
+}
+
 export default {
-    getAllEntities() {
+    getAllEntities(): Promise<AxiosResponse<SocDictionaryEntry[]>> {
         return axios.get(baseUrl, config);
     },
-    saveEntity(code, name) {
+    saveEntity(code: string, name: string): Promise<AxiosResponse<SocDictionaryEntry>> {
         code = code.trim();
         console.log(`Saving dictionary entry : ${code} , ${name}`);
-        return axios.post(baseUrl, {code: code, name: name}, config);
+        return axios.post<SocDictionaryEntry>(baseUrl, {code: code, name: name}, config);
     },
-    updateEntity(code, name) {
+    updateEntity(code: string, name: string): Promise<AxiosResponse<SocDictionaryEntry>> {
+        code = code.trim();
         console.log(`Updating dictionary entry : ${code} , ${name}`);
         return axios.patch(baseUrl, {code: code, name: name}, config);
     },
-    deleteEntity(id) {
+    deleteEntity(id: number): Promise<AxiosResponse<SocDictionaryEntry>> {
         console.log(`Deleting dictionary entry : ${id}`);
         return axios.delete(`${baseUrl}/${id}`, config);
     }

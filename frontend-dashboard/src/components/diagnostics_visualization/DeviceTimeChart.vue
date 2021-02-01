@@ -69,37 +69,55 @@
   </div>
 </template>
 
-<script>
-import $ from "jquery";
-import DiagnosticDataService from "@/js/services/DiagnosticDataService";
-import Utils from "@/js/Utils";
+<script lang="ts">
+import DiagnosticDataService, {DiagnosticData} from "@/scripts/services/DiagnosticDataService";
+import Utils from "@/scripts/Utils";
+import * as $ from 'jquery';
+import Vue from "vue";
+import Component from "vue-class-component";
 
-export default {
-  name: "DeviceTimeChart",
-  data() {
-    return {
-      renderChart: false,
-      diagnosticData: null,
-      chartLabels: null,
-      chartData: [{
-        name: '',
-        values: [],
-      }],
-      dateRange: {
-        startTimestamp: new Date(Date.now() - 86400000).toUTCString(),
-        endTimestamp: new Date().toUTCString(),
-        isValid: false,
-      },
-      modelTypes: null,
-      selectedModel: null,
-      availableDevices: null,
-      selectedDevice: null,
-      tooltipOptions: {
-        formatTooltipX: (d) => d,
-        formatTooltipY: (d) => `${d} ms`,
-      }
-    };
-  },
+@Component
+class DeviceTimeChart extends Vue {
+  renderChart: boolean = false;
+
+  diagnosticData: DiagnosticData[] = [];
+
+  chartLabels: string[] = [];
+
+  chartData: any[] = [{
+    name: '',
+    values: [],
+  }];
+
+  dateRange: any = {
+    startTimestamp: new Date(Date.now() - 86400000).toUTCString(),
+    endTimestamp: new Date().toUTCString(),
+    isValid: false,
+  };
+
+  modelTypes: string[] = [];
+
+  selectedModel: string = "";
+
+  availableDevices: string[] = [];
+
+  selectedDevice: string = "";
+
+  // noinspection JSUnusedGlobalSymbols
+  tooltipOptions: any = {
+    formatTooltipX: (d: string) => d,
+    formatTooltipY: (d: string) => `${d} ms`
+  };
+
+  static createEmptyLabels(dateStrings: string[]): string[] {
+    let result: string[] = [];
+    dateStrings.forEach(function (dateStr) {
+      result.push(dateStr.split('.')[0]);
+    });
+
+    return result;
+  }
+
   async mounted() {
     this.modelTypes = (await DiagnosticDataService.getModels()).data;
     if (this.modelTypes.length > 0) {
@@ -110,91 +128,76 @@ export default {
     if (this.availableDevices.length > 0) {
       this.selectedDevice = this.availableDevices[0];
     }
-  },
-  methods: {
-    async getDiagnosticData() {
-      try {
-        const response = await DiagnosticDataService.getDiagnosticData();
-        this.diagnosticData = response.data;
-        console.log("Diagnostics download");
-        console.log(this.diagnosticData);
-      } catch (error) {
-        console.log(error);
-      }
-    },
-    async setChart() {
-      const chart = $("#time-chart-container");
-
-      if (this.renderChart) {
-        await chart.animate({"duration": 200, "opacity": "0"}).promise();
-        await chart.animate({"duration": 200, "height": "0"}).promise();
-      }
-
-      this.renderChart = false;
-
-      const startDate = new Date(Date.parse(this.dateRange.startTimestamp)).toISOString();
-      const endDate = new Date(Date.parse(this.dateRange.endTimestamp)).toISOString();
-
-      const request =
-          DiagnosticDataService.getDiagnosticData(startDate, endDate, this.selectedModel, this.selectedDevice);
-      this.diagnosticData = (await request).data;
-
-      console.log("Received diagnostic data");
-      console.log(this.diagnosticData);
-
-      if (this.diagnosticData.length === 0) {
-        this.$notify({
-          group: "messages",
-          type: "warn",
-          title: "Chart generation",
-          text: "No data for chart generation"
-        });
-        return;
-      }
-
-      this.chartLabels = this.diagnosticData.map(data => Utils.formatIsoDate(new Date(data.timeStamp)));
-      this.chartLabels = this.createEmptyLabels(this.chartLabels);
-
-      this.chartData = [];
-
-      this.chartData.push({
-        name: 'Inference',
-        values: this.diagnosticData.map(data => data.inferenceTime)
-      });
-
-      this.chartData.push({
-        name: 'Processing',
-        values: this.diagnosticData.map(data => data.processingTime)
-      });
-
-      console.log("Set upped chart data");
-      console.log(this.chartData);
-
-
-      this.renderChart = true;
-
-      await chart.animate({"duration": 200, "height": "600px"}).promise();
-      await chart.animate({"duration": 200, "opacity": "100%"}).promise();
-    },
-    validateDateRange() {
-      if (Date.parse(this.dateRange.startTimestamp) < Date.parse(this.dateRange.endTimestamp)) {
-        this.dateRange.isValid = true;
-      } else {
-        alert("Invalid dates");
-        this.dateRange.isValid = false;
-      }
-
-      this.setChart();
-    },
-    createEmptyLabels(dateStrings) {
-      let result = [];
-      dateStrings.forEach(function (dateStr) {
-        result.push(dateStr.split('.')[0]);
-      });
-      return result;
-    }
   }
-};
+
+  async setChart(): Promise<void> {
+    const chart = $("#time-chart-container");
+
+    if (this.renderChart) {
+      await chart.animate({"duration": 200, "opacity": "0"}).promise();
+      await chart.animate({"duration": 200, "height": "0"}).promise();
+    }
+
+    this.renderChart = false;
+
+    const startDate = new Date(Date.parse(this.dateRange.startTimestamp)).toISOString();
+    const endDate = new Date(Date.parse(this.dateRange.endTimestamp)).toISOString();
+
+    const request =
+        DiagnosticDataService.getDiagnosticData(startDate, endDate, this.selectedModel, this.selectedDevice);
+    this.diagnosticData = (await request).data;
+
+    console.log("Received diagnostic data");
+    console.log(this.diagnosticData);
+
+    if (this.diagnosticData.length === 0) {
+      this.$notify({
+        group: "messages",
+        type: "warn",
+        title: "Chart generation",
+        text: "No data for chart generation"
+      });
+      return;
+    }
+
+    this.chartLabels = this.diagnosticData.map(data => Utils.formatIsoDate(new Date(data.timeStamp)));
+    this.chartLabels = DeviceTimeChart.createEmptyLabels(this.chartLabels);
+
+    this.chartData = [];
+
+    this.chartData.push({
+      name: 'Inference',
+      values: this.diagnosticData.map(data => data.inferenceTime)
+    });
+
+    this.chartData.push({
+      name: 'Processing',
+      values: this.diagnosticData.map(data => data.processingTime)
+    });
+
+    console.log("Set upped chart data");
+    console.log(this.chartData);
+
+
+    this.renderChart = true;
+
+    await chart.animate({"duration": 200, "height": "600px"}).promise();
+    await chart.animate({"duration": 200, "opacity": "100%"}).promise();
+  }
+
+  validateDateRange(): void {
+    if (Date.parse(this.dateRange.startTimestamp) < Date.parse(this.dateRange.endTimestamp)) {
+      this.dateRange.isValid = true;
+    } else {
+      alert("Invalid dates");
+      this.dateRange.isValid = false;
+    }
+
+    this.setChart();
+  }
+}
+
+export default DeviceTimeChart;
 </script>
 
 <style scoped>

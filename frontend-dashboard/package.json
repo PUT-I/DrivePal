@@ -1,6 +1,6 @@
 {
   "name": "drivepal-dashboard",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
@@ -9,50 +9,32 @@
   },
   "dependencies": {
     "axios": "^0.21.1",
-    "bootstrap": "^4.5.3",
-    "bootstrap-vue": "^2.18.1",
-    "core-js": "^3.6.5",
+    "bootstrap": "^4.6.0",
+    "bootstrap-vue": "^2.21.2",
+    "core-js": "^3.8.3",
     "jquery": "^3.5.1",
     "popper.js": "^1.16.1",
     "portal-vue": "^2.1.7",
     "vue": "^2.6.12",
+    "vue-class-component": "^7.2.6",
+    "vue-property-decorator": "^9.1.2",
     "vue-datetime": "^0.7.1",
     "vue-notification": "^1.3.20",
-    "vue-router": "^3.4.9",
+    "vue-router": "^3.5.1",
     "vue2-frappe": "^1.2.3"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "~4.5.10",
-    "@vue/cli-plugin-eslint": "~4.5.10",
-    "@vue/cli-service": "~4.5.10",
-    "@vue/compiler-sfc": "^3.0.5",
+    "@types/jquery": "^3.5.5",
+    "@types/vue-datetime": "^1.0.1",
+    "@vue/cli-plugin-babel": "~4.5.11",
+    "@vue/cli-plugin-eslint": "~4.5.11",
+    "@vue/cli-plugin-typescript": "~4.5.11",
+    "@vue/cli-service": "~4.5.11",
     "babel-eslint": "^10.1.0",
-    "eslint": "^7.18.0",
-    "eslint-plugin-vue": "^7.4.1",
+    "babel-preset-typescript-vue": "^1.1.1",
+    "eslint": "^7.19.0",
+    "eslint-plugin-vue": "^7.5.0",
+    "typescript": "^4.1.3",
     "vue-template-compiler": "^2.6.12"
-  },
-  "eslintConfig": {
-    "root": true,
-    "env": {
-      "node": true
-    },
-    "extends": [
-      "plugin:vue/essential",
-      "eslint:recommended"
-    ],
-    "parserOptions": {
-      "parser": "babel-eslint"
-    },
-    "rules": {
-      "semi": "warn",
-      "no-unreachable": "error",
-      "no-shadow": "warn",
-      "class-methods-use-this": "warn"
-    }
-  },
-  "browserslist": [
-    "> 1%",
-    "last 2 versions",
-    "not dead"
-  ]
+  }
 }

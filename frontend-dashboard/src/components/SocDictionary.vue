@@ -45,14 +45,14 @@
         <b-table
             id="dictionary-table"
             class="shadow-sm"
+            ref="table"
             :current-page="currentPage"
-            :fields="dictionary_fields"
+            :fields="dictionaryFields"
             :per-page="perPage"
             :items="dictionary"
             bordered
             striped>
           <template #cell(action)="data">
-            <div style="height: 10px;"/>
             <b-button class="btn btn-danger shadow-sm" style="width: 100px;" type="button"
                       @click="deleteButtonAction(data.item.id, $event)">Delete
             </b-button>
@@ -67,27 +67,31 @@
   </div>
 </template>
 
-<script>
-import $ from "jquery";
-import SocDictionaryService from "@/js/services/SocDictionaryService";
+<script lang="ts">
+import SocDictionaryService, {SocDictionaryEntry} from "@/scripts/services/SocDictionaryService";
+import * as $ from 'jquery';
+import Vue from 'vue';
+import Component from 'vue-class-component';
 
-export default {
-  name: "SocDictionary",
-  data() {
-    return {
-      code: "",
-      dictName: "",
-      currentPage: 1,
-      perPage: 8,
-      dictionary: [],
-      dictionary_fields: [
-        {key: "code", label: "Code", sortable: true},
-        {key: "name", label: "Name", sortable: true},
-        {key: "action", label: "Action", sortable: false}
-      ]
-    };
-  },
-  async mounted() {
+@Component
+class SocDictionary extends Vue {
+  code: string = "";
+
+  dictName: string = "";
+
+  currentPage: number = 1;
+
+  perPage: number = 8;
+
+  dictionary: SocDictionaryEntry[] = [];
+
+  dictionaryFields = [
+    {key: "code", label: "Code", sortable: true},
+    {key: "name", label: "Name", sortable: true},
+    {key: "action", label: "Action", sortable: false}
+  ];
+
+  async mounted(): Promise<void> {
     const tableContainer = $("#container");
     tableContainer.css("opacity", "0%");
 
@@ -103,68 +107,71 @@ export default {
       text: "Dictionary downloaded successfully"
     });
     tableContainer.animate({"duration": 400, "opacity": "100%"});
-  },
-  methods: {
-    async getSocDictionary() {
-      let response;
-      try {
-        response = await SocDictionaryService.getAllEntities();
-      } catch (error) {
-        this.$notify({
-          group: "messages",
-          type: "error",
-          title: "Download failed",
-          text: "Failed to download dictionary"
-        });
-        console.error(error);
-        return;
-      }
-      return response.data;
-    },
-    handleSubmit() {
-      const filtered = this.dictionary.filter(elem => elem.code === this.code);
-      if (filtered.length <= 0) {
-        SocDictionaryService.saveEntity(this.code, this.dictName);
-        this.dictionary.push({code: this.code, name: this.dictName});
-      } else {
-        SocDictionaryService.updateEntity(this.code, this.dictName);
-        this.dictionary = this.dictionary.filter(elem => elem.code !== this.code);
-        this.dictionary.push({code: this.code, name: this.dictName});
-      }
-    },
-    async deleteButtonAction(id, event) {
-      try {
-        await SocDictionaryService.deleteEntity(id);
-      } catch (error) {
-        this.$notify({
-          group: "messages",
-          type: "error",
-          title: "Delete failed",
-          text: "Failed to delete dictionary entry"
-        });
-        console.error(error);
-        return;
-      }
+  }
 
+
+  async getSocDictionary(): Promise<SocDictionaryEntry[]> {
+    let response;
+    try {
+      response = await SocDictionaryService.getAllEntities();
+    } catch (error) {
       this.$notify({
         group: "messages",
-        type: "success",
-        title: "Delete success",
-        text: `Dictionary entry (id ${id}) deleted successfully`
+        type: "error",
+        title: "Download failed",
+        text: "Failed to download dictionary"
       });
-      $(event.target)
-          .parent()
-          .parent()
-          .children('td')
-          .animate({padding: 0})
-          .wrapInner('<div />')
-          .children()
-          .slideUp(() => {
-            $(this).closest('tr').remove();
-          });
+      console.error(error);
+      return [];
+    }
+    return response.data;
+  }
+
+  async handleSubmit(): Promise<void> {
+    const filtered = this.dictionary.filter((elem: SocDictionaryEntry) => elem.code === this.code);
+    if (filtered.length <= 0) {
+      const newEntry = (await SocDictionaryService.saveEntity(this.code, this.dictName)).data;
+      this.dictionary.push(newEntry);
+    } else {
+      const newEntry = (await SocDictionaryService.updateEntity(this.code, this.dictName)).data;
+      this.dictionary = this.dictionary.filter((elem: SocDictionaryEntry) => elem.code !== this.code);
+      this.dictionary.push(newEntry);
     }
   }
-};
+
+  async deleteButtonAction(id: number, event: any): Promise<void> {
+    try {
+      await SocDictionaryService.deleteEntity(id);
+    } catch (error) {
+      this.$notify({
+        group: "messages",
+        type: "error",
+        title: "Delete failed",
+        text: "Failed to delete dictionary entry"
+      });
+      console.error(error);
+      return;
+    }
+
+    this.$notify({
+      group: "messages",
+      type: "success",
+      title: "Delete success",
+      text: `Dictionary entry (id ${id}) deleted successfully`
+    });
+    await $(event.target)
+        .parent()
+        .parent()
+        .children('td')
+        .animate({padding: 0})
+        .wrapInner('<div />')
+        .children()
+        .slideUp()
+        .promise();
+  }
+}
+
+export default SocDictionary;
 </script>
 
 <style scoped>

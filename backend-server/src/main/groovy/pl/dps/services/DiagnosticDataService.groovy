@@ -3,7 +3,7 @@ package pl.dps.services
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import pl.dps.models.DiagnosticData
-import pl.dps.models.dto.InferenceAverageDTO
+import pl.dps.models.dto.AverageTimesDTO
 import pl.dps.repositories.DiagnosticDataRepository
 
 @Service
@@ -24,7 +24,7 @@ class DiagnosticDataService {
         return diagnosticDataRepository.findAll()
     }
 
-    InferenceAverageDTO getTotalAverage(String soc) {
+    List<AverageTimesDTO> getTotalAverage(String soc) {
         List<DiagnosticData> diagnosticData = findAll()
 
         if (soc != null && soc.toUpperCase() != "ALL") {
@@ -50,8 +50,13 @@ class DiagnosticDataService {
             averageProcessingTimes.put(modelName, averageProcessingTime)
         }
 
-        return new InferenceAverageDTO(modelNames: modelNames,
-                averageInferenceTimes: averageInferenceTimes,
-                averageProcessingTimes: averageProcessingTimes)
+        List<AverageTimesDTO> result = new ArrayList<>(modelNames.size())
+        for (String modelName in modelNames) {
+            result.add(new AverageTimesDTO(modelName: modelName,
+                    averageInferenceTime: averageInferenceTimes[modelName],
+                    averageProcessingTime: averageProcessingTimes[modelName]))
+        }
+
+        return result
     }
 }

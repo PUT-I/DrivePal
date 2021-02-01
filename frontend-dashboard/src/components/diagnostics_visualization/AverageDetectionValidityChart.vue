@@ -1,7 +1,7 @@
 <template>
-  <div v-if="this.renderChart" :id="`validity-chart-${this.chartIndex}`">
+  <div v-if="renderChart" :id="`validity-chart-${chartIndex}`">
     <vue-frappe
-        :id="`validity-chart-${this.chartIndex}`"
+        :id="`validity-chart-${chartIndex}`"
         :dataSets="chartData"
         :height="300"
         :labels="chartLabels"
@@ -12,45 +12,61 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: "AverageDetectionValidityChart",
-  props: ["modelValidity", "chartIndex"],
-  data() {
-    return {
-      renderChart: false,
-      chartTitle: null,
-      chartLabels: null,
-      chartData: [],
-      modelNames: [],
-      tooltipOptions: {
-        formatTooltipX: (d) => `${d}%`,
-        formatTooltipY: (d) => `${d}%`,
-      }
-    };
-  },
-  async mounted() {
-    console.log(this.modelValidity);
+<script lang="ts">
+import {Component, Prop, Vue} from 'vue-property-decorator';
+import {DetectionValidity} from "@/scripts/services/DetectionService";
+
+
+@Component
+class AverageDetectionValidityChart extends Vue {
+  @Prop()
+  detectionValidity: DetectionValidity;
+
+  @Prop()
+  chartIndex: number;
+
+  renderChart: boolean = false;
+
+  chartTitle: string = "";
+
+  chartLabels: string[] = [];
+
+  chartData: any[] = [];
+
+  // noinspection JSUnusedGlobalSymbols
+  tooltipOptions: any = {
+    formatTooltipX: (d: string) => `${(parseFloat(d) * 100).toFixed(1)}%`,
+    formatTooltipY: (d: string) => `${(parseFloat(d) * 100).toFixed(1)}%`
+  }
+
+  async mounted(): Promise<void> {
+    console.log("Creating AverageDetectionValidityChart");
+    console.log(this.chartIndex);
+    console.log(this.detectionValidity);
 
     this.setChart();
-  },
-  methods: {
-    setChart() {
-      this.chartTitle = `${this.modelValidity.modelName} validity`;
-
-      delete this.modelValidity.modelName;
-
-      this.chartLabels = Object.keys(this.modelValidity);
-
-      this.chartData.push({
-        name: this.modelName,
-        values: Object.values(this.modelValidity),
-      });
-
-      this.renderChart = true;
-    }
   }
-};
+
+  setChart(): void {
+    this.chartTitle = `${this.detectionValidity.modelName} validity`;
+
+
+    this.chartLabels = Object.keys(this.detectionValidity);
+
+    this.chartData.push({
+      name: this.detectionValidity.modelName,
+      values: [
+        this.detectionValidity.valid,
+        this.detectionValidity.invalid,
+        this.detectionValidity.unverified
+      ],
+    });
+
+    this.renderChart = true;
+  }
+}
+
+export default AverageDetectionValidityChart;
 </script>
 
 <style scoped>

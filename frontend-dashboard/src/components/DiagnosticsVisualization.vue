@@ -11,7 +11,7 @@
           <b-form-select id="chart-type-select"
                          v-model="selectedChartType"
                          :options="chartTypes"
-                         @change="changeChart"/>
+                         @change="changeChart()"/>
         </b-form-group>
       </div>
 
@@ -29,43 +29,48 @@
   </div>
 </template>
 
-<script>
-import $ from "jquery";
+<script lang="ts">
 import AverageTimeChart from "@/components/diagnostics_visualization/AverageTimeChart";
 import DeviceTimeChart from "@/components/diagnostics_visualization/DeviceTimeChart";
 import AverageDetectionValidityCharts from "@/components/diagnostics_visualization/AverageDetectionValidityCharts";
-import Utils from "@/js/Utils";
+import Utils from "@/scripts/Utils.ts";
+import * as $ from 'jquery';
+import Component from "vue-class-component";
+import Vue from "vue";
 
-export default {
-  name: "DiagnosticsVisualization",
-  components: {AverageDetectionValidityCharts, DeviceTimeChart, AverageTimeChart},
-  data() {
-    return {
-      chartTypes: [
-        {value: 'detectionValidity', text: 'Detection validity'},
-        {value: 'avgTime', text: 'Total average times'},
-        {value: 'deviceTime', text: 'Time for specific device'}
-      ],
-      selectedChartType: 'detectionValidity',
-      selectedChartTypeSwitch: 'detectionValidity'
-    };
-  },
-  mounted() {
+
+@Component({
+  components: {AverageDetectionValidityCharts, DeviceTimeChart, AverageTimeChart}
+})
+class DiagnosticsVisualization extends Vue {
+  chartTypes: any = [
+    {value: 'detectionValidity', text: 'Detection validity'},
+    {value: 'avgTime', text: 'Total average times'},
+    {value: 'deviceTime', text: 'Time for specific device'}
+  ];
+
+  selectedChartType: string = 'detectionValidity';
+
+  selectedChartTypeSwitch: string = 'detectionValidity';
+
+  mounted(): void {
     this.changeChart();
-  },
-  methods: {
-    async changeChart() {
-      const container = $("#chart-container");
+  }
 
-      await container.animate({"duration": 200, "opacity": "0"}).promise();
+  async changeChart(): Promise<void> {
+    console.log(`Changing chart to : ${this.selectedChartType}`);
 
-      this.selectedChartTypeSwitch = this.selectedChartType;
+    const container = $("#chart-container");
+    await container.animate({"duration": 200, "opacity": "0"}).promise();
 
-      if (this.selectedChartTypeSwitch != null) {
-        await Utils.sleep(100);
-        await container.animate({"duration": 400, "opacity": "100%"});
-      }
+    this.selectedChartTypeSwitch = this.selectedChartType;
+
+    if (this.selectedChartTypeSwitch != null) {
+      await Utils.sleep(100);
+      await container.animate({"duration": 400, "opacity": "100%"});
     }
   }
-};
+}
+
+export default DiagnosticsVisualization;
 </script>

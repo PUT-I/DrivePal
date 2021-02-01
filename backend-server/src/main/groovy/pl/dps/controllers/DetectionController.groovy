@@ -97,15 +97,15 @@ class DetectionController extends AbstractController {
     ResponseEntity getValidityPercentage() {
         List<Detection> detections = detectionService.findAll()
 
-        Set<String> models = detections
+        Set<String> modelNames = detections
                 .collect { it.detectionImage }
                 .unique()
                 .collect { it.modelName }
                 .unique()
 
-        Map<String, DetectionValidityDTO> detectionValidityMap = new HashMap<>()
+        List<DetectionValidityDTO> detectionValidityList = new ArrayList<>(modelNames.size())
 
-        for (String modelName in models) {
+        for (String modelName in modelNames) {
             Double detectionCount = detections.count { it.detectionImage.modelName == modelName }.toFloat()
 
             Double validPercentage = detections.count {
@@ -121,14 +121,15 @@ class DetectionController extends AbstractController {
             } / detectionCount
 
             DetectionValidityDTO detectionValidityDTO = new DetectionValidityDTO()
+            detectionValidityDTO.modelName = modelName
             detectionValidityDTO.valid = validPercentage.round(3)
             detectionValidityDTO.invalid = invalidPercentage.round(3)
             detectionValidityDTO.unverified = unverifiedPercentage.round(3)
 
-            detectionValidityMap.put(modelName, detectionValidityDTO)
+            detectionValidityList.add(detectionValidityDTO)
         }
 
-        return new ResponseEntity(detectionValidityMap, HttpStatus.OK)
+        return new ResponseEntity(detectionValidityList, HttpStatus.OK)
     }
 
     private static DetectionImageDTO convertToDTO(DetectionImage detectionImage) {

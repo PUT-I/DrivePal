@@ -27,75 +27,92 @@
   </div>
 </template>
 
-<script>
-import DiagnosticDataService from "@/js/services/DiagnosticDataService";
+<script lang="ts">
+import DiagnosticDataService, {AverageTimes} from "@/scripts/services/DiagnosticDataService";
+import Component from "vue-class-component";
+import Vue from "vue";
 
-export default {
-  name: "AverageTimeChart",
-  data() {
-    return {
-      renderChart: false,
-      chartTitle: null,
-      chartLabels: null,
-      chartData: [],
-      modelNames: [],
-      averageInferenceTimes: null,
-      averageProcessingTimes: null,
-      availableSoc: ["All"],
-      selectedSoc: "All",
-      tooltipOptions: {
-        formatTooltipX: (d) => `${d}`,
-        formatTooltipY: (d) => `${d} ms`,
-      }
-    };
-  },
-  async mounted() {
+@Component
+class AverageTimeChart extends Vue {
+  renderChart: boolean = false;
+
+  chartTitle: string = "";
+
+  chartLabels: string[] = [];
+
+  chartData: any[] = [];
+
+  modelNames: string[] = [];
+
+  averageInferenceTimes: number[]
+
+  averageProcessingTimes: number[]
+
+  availableSoc: string[] = ["All"];
+
+  selectedSoc: string = "All";
+
+  // noinspection JSUnusedGlobalSymbols
+  tooltipOptions: any = {
+    formatTooltipX: (d: string) => `${d}`,
+    formatTooltipY: (d: string) => `${d} ms`
+  }
+
+  async mounted(): Promise<void> {
     this.chartTitle = 'Time [ms]';
 
     const socs = (await DiagnosticDataService.getSocs()).data;
     this.availableSoc = this.availableSoc.concat(socs);
 
     await this.getDataAndSetChart();
-  },
-  methods: {
-    async getDataAndSetChart() {
-      await this.getDiagnosticData();
-      this.setChart();
-    },
-    async getDiagnosticData() {
-      const response = (await DiagnosticDataService.getAverage(this.selectedSoc)).data;
-      console.log(response);
+  }
 
-      try {
-        this.modelNames = response.modelNames;
-        this.averageInferenceTimes = response.averageInferenceTimes;
-        this.averageProcessingTimes = response.averageProcessingTimes;
-        console.log("Diagnostics download");
-        console.log(response);
-      } catch (error) {
-        console.log(error);
-      }
-    },
-    setChart() {
-      this.renderChart = false;
+  async getDataAndSetChart(): Promise<void> {
+    await this.getDiagnosticData();
+    this.setChart();
+  }
 
-      this.chartLabels = Object.keys(this.averageInferenceTimes);
+  async getDiagnosticData(): Promise<void> {
+    const data = (await DiagnosticDataService.getAverage(this.selectedSoc)).data;
+    console.log("Diagnostics downloaded");
+    console.log(data);
 
-      this.chartData = [];
-      this.chartData.push({
-        name: 'Inference Time',
-        values: Object.values(this.averageInferenceTimes),
-      });
+    try {
+      this.modelNames = data.map((value: AverageTimes) => value.modelName);
+      this.averageInferenceTimes = data.map((value: AverageTimes) => value.averageInferenceTime);
+      this.averageProcessingTimes = data.map((value: AverageTimes) => value.averageProcessingTime);
 
-      this.chartData.push({
-        name: 'Processing Time',
-        values: Object.values(this.averageProcessingTimes),
-      });
+      console.log("Data transformed");
+      console.log(this.modelNames);
+      console.log(this.averageInferenceTimes);
+      console.log(this.averageProcessingTimes);
 
-      this.renderChart = true;
+    } catch (error) {
+      console.log(error);
     }
   }
-};
+
+  setChart(): void {
+    this.renderChart = false;
+
+    this.chartLabels = this.modelNames;
+
+    this.chartData = [];
+    this.chartData.push({
+      name: 'Inference Time',
+      values: this.averageInferenceTimes,
+    });
+
+    this.chartData.push({
+      name: 'Processing Time',
+      values: this.averageProcessingTimes,
+    });
+
+    this.renderChart = true;
+  }
+}
+
+export default AverageTimeChart;
 </script>
 
 <style scoped>
