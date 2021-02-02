@@ -9,11 +9,10 @@ const config = {
     },
 };
 
-// TODO: Change server response to be able remove Map type
 export interface AverageTimes {
-    modelNames: string[],
-    averageInferenceTimes: Map<string, number>,
-    averageProcessingTimes: Map<string, number>
+    modelName: string,
+    averageInferenceTime: number,
+    averageProcessingTime: number
 }
 
 export interface DiagnosticData {
@@ -39,7 +38,7 @@ export default {
         const url = `${baseUrl}/soc?useSocDictionary=${useSocDictionary}`;
         return axios.get(url, config);
     },
-    getAverage(soc = "ALL", useSocDictionary = true): Promise<AxiosResponse<AverageTimes>> {
+    getAverage(soc = "ALL", useSocDictionary = true): Promise<AxiosResponse<AverageTimes[]>> {
         const url = `${baseUrl}/average?soc=${soc}&useSocDictionary=${useSocDictionary}`;
         return axios.get(url, config);
     },

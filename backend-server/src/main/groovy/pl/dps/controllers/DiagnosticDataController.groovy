@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*
 import pl.dps.Utils
 import pl.dps.models.DiagnosticData
 import pl.dps.models.SocDictionary
-import pl.dps.models.dto.InferenceAverageDTO
+import pl.dps.models.dto.AverageTimesDTO
 import pl.dps.services.DiagnosticDataService
 import pl.dps.services.SocDictionaryService
 
@@ -42,7 +42,7 @@ class DiagnosticDataController extends AbstractController {
                 soc = dictionaryEntry.code
             }
         }
-        InferenceAverageDTO inferenceAverage = diagnosticDataService.getTotalAverage(soc)
+        List<AverageTimesDTO> inferenceAverage = diagnosticDataService.getTotalAverage(soc)
 
         return new ResponseEntity(inferenceAverage, HttpStatus.OK)
     }

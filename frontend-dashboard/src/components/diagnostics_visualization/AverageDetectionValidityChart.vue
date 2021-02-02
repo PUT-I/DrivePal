@@ -23,9 +23,6 @@ class AverageDetectionValidityChart extends Vue {
   detectionValidity: DetectionValidity;
 
   @Prop()
-  modelName: string;
-
-  @Prop()
   chartIndex: number;
 
   renderChart: boolean = false;
@@ -45,21 +42,24 @@ class AverageDetectionValidityChart extends Vue {
   async mounted(): Promise<void> {
     console.log("Creating AverageDetectionValidityChart");
     console.log(this.chartIndex);
-    console.log(this.modelName);
     console.log(this.detectionValidity);
 
     this.setChart();
   }
 
   setChart(): void {
-    this.chartTitle = `${this.modelName} validity`;
+    this.chartTitle = `${this.detectionValidity.modelName} validity`;
 
 
     this.chartLabels = Object.keys(this.detectionValidity);
 
     this.chartData.push({
-      name: this.modelName,
-      values: Object.values(this.detectionValidity),
+      name: this.detectionValidity.modelName,
+      values: [
+        this.detectionValidity.valid,
+        this.detectionValidity.invalid,
+        this.detectionValidity.unverified
+      ],
     });
 
     this.renderChart = true;

@@ -28,7 +28,7 @@
 </template>
 
 <script lang="ts">
-import DiagnosticDataService from "@/scripts/services/DiagnosticDataService";
+import DiagnosticDataService, {AverageTimes} from "@/scripts/services/DiagnosticDataService";
 import Component from "vue-class-component";
 import Vue from "vue";
 
@@ -44,11 +44,9 @@ class AverageTimeChart extends Vue {
 
   modelNames: string[] = [];
 
-  // TODO: Change server response to be able remove Map type
-  averageInferenceTimes: Map<string, number> = new Map<string, number>();
+  averageInferenceTimes: number[]
 
-  // TODO: Change server response to be able remove Map type
-  averageProcessingTimes: Map<string, number> = new Map<string, number>();
+  averageProcessingTimes: number[]
 
   availableSoc: string[] = ["All"];
 
@@ -75,15 +73,20 @@ class AverageTimeChart extends Vue {
   }
 
   async getDiagnosticData(): Promise<void> {
-    const response = (await DiagnosticDataService.getAverage(this.selectedSoc)).data;
-    console.log(response);
+    const data = (await DiagnosticDataService.getAverage(this.selectedSoc)).data;
+    console.log("Diagnostics downloaded");
+    console.log(data);
 
     try {
-      this.modelNames = response.modelNames;
-      this.averageInferenceTimes = response.averageInferenceTimes;
-      this.averageProcessingTimes = response.averageProcessingTimes;
-      console.log("Diagnostics download");
-      console.log(response);
+      this.modelNames = data.map((value: AverageTimes) => value.modelName);
+      this.averageInferenceTimes = data.map((value: AverageTimes) => value.averageInferenceTime);
+      this.averageProcessingTimes = data.map((value: AverageTimes) => value.averageProcessingTime);
+
+      console.log("Data transformed");
+      console.log(this.modelNames);
+      console.log(this.averageInferenceTimes);
+      console.log(this.averageProcessingTimes);
+
     } catch (error) {
       console.log(error);
     }
@@ -92,17 +95,17 @@ class AverageTimeChart extends Vue {
   setChart(): void {
     this.renderChart = false;
 
-    this.chartLabels = Object.keys(this.averageInferenceTimes);
+    this.chartLabels = this.modelNames;
 
     this.chartData = [];
     this.chartData.push({
       name: 'Inference Time',
-      values: Object.values(this.averageInferenceTimes),
+      values: this.averageInferenceTimes,
     });
 
     this.chartData.push({
       name: 'Processing Time',
-      values: Object.values(this.averageProcessingTimes),
+      values: this.averageProcessingTimes,
     });
 
     this.renderChart = true;

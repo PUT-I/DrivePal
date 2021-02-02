@@ -17,6 +17,7 @@ export interface DetectionUrl {
 }
 
 export interface DetectionValidity {
+    modelName: string,
     valid: number,
     invalid: number,
     unverified: number
@@ -48,8 +49,7 @@ export default {
         const url = `${baseUrl}/${id}`;
         return axios.get(url, config);
     },
-    // TODO: Change server response to be able remove Map type
-    getDetectionsValidity(): Promise<AxiosResponse<Map<string, DetectionValidity>>> {
+    getDetectionsValidity(): Promise<AxiosResponse<DetectionValidity[]>> {
         const url = `${baseUrl}/valid`;
         return axios.get(url, config);
     },
