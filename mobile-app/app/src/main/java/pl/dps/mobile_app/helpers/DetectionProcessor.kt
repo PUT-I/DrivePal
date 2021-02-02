@@ -24,18 +24,14 @@ class DetectionProcessor(private var context: Context?,
                          private var options: DrivepalOptions?,
                          private var previewView: PreviewView?,
                          private var trackingOverlay: OverlayView?,
-                         private var sendDetection: (JSONObject) -> Unit) {
-
+                         private var sendDetection: (JSONObject) -> Unit,
+                         private var showAlert: suspend (String) -> Unit) {
     companion object {
         private const val TAG = "DetectionProcessor"
 
         private const val MAINTAIN_ASPECT = false
         private const val TEXT_SIZE_DIP = 10f
-        private const val ALERT_TIMEOUT: Long = 1000L
     }
-
-    /* Alert variables */
-    private var alert: Alert? = null
 
     /* Tracking overlay variables */
     private var croppedBitmap: Bitmap? = null
@@ -55,7 +51,6 @@ class DetectionProcessor(private var context: Context?,
         previewView = null
         trackingOverlay = null
 
-        alert = null
         tracker = null
     }
 
@@ -182,7 +177,7 @@ class DetectionProcessor(private var context: Context?,
         val value = abs(0.5 - boundingBox.centerX() / previewWidth)
         val speedCondition = speed < 0.0f || speed >= options!!.personSpeedLimit
 
-        if (value < 0.1F && speedCondition && alert == null) {
+        if (value < 0.1F && speedCondition) {
             CoroutineScope(Dispatchers.Main).launch {
                 showAlert("Person on the road. Slow down!")
             }
@@ -192,7 +187,7 @@ class DetectionProcessor(private var context: Context?,
     private fun showAlertForStopSign(speed: Float) {
         val speedCondition = speed < 0.0f || speed >= options!!.stopSpeedLimit
 
-        if (speedCondition && alert == null) {
+        if (speedCondition) {
             CoroutineScope(Dispatchers.Main).launch {
                 showAlert("Stop sign detected. Stop your vehicle!")
             }
@@ -202,7 +197,7 @@ class DetectionProcessor(private var context: Context?,
     private fun showAlertForPedestrianCrossingSign(speed: Float) {
         val speedCondition = speed < 0.0f || speed >= options!!.pedestrianSpeedLimit
 
-        if (speedCondition && alert == null) {
+        if (speedCondition) {
             CoroutineScope(Dispatchers.Main).launch {
                 showAlert("Possible pedestrians. Slow down!")
             }
@@ -212,20 +207,10 @@ class DetectionProcessor(private var context: Context?,
     private fun showAlertForSpeedSign(speed: Float, speedLimit: Float) {
         val speedCondition = speed < 0.0f || speed >= speedLimit
 
-        if (speedCondition && alert == null) {
+        if (speedCondition) {
             CoroutineScope(Dispatchers.Main).launch {
                 showAlert("You're driving too fast. Slow down!")
             }
-        }
-    }
-
-    private suspend fun showAlert(message: String) {
-        if (alert == null) {
-            alert = Alert(context!!, message)
-            alert!!.show()
-            delay(ALERT_TIMEOUT)
-            alert!!.hide()
-            alert = null
         }
     }
 

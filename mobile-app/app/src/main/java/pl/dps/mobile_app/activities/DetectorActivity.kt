@@ -30,6 +30,7 @@ import com.example.mobile_app.R
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import pl.dps.detector.Detector
@@ -43,6 +44,7 @@ class DetectorActivity : AppCompatActivity() {
         private const val TAG = "DetectorActivity"
 
         private const val MINIMUM_CONFIDENCE = 0.7f
+        private const val ALERT_TIMEOUT: Long = 1000L
     }
 
     private var options: DrivepalOptions = DrivepalOptions()
@@ -51,6 +53,7 @@ class DetectorActivity : AppCompatActivity() {
     private lateinit var speedWatcher: SpeedWatcher
     private lateinit var locationManager: LocationManager
     private lateinit var speedText: TextView
+    private var alert: Alert? = null
 
     /* Image analysis variables */
     private var detector: Detector? = null
@@ -120,7 +123,8 @@ class DetectorActivity : AppCompatActivity() {
                     options = options,
                     previewView = previewView,
                     trackingOverlay = trackingOverlay,
-                    sendDetection = serverClient::sendDetection
+                    sendDetection = serverClient::sendDetection,
+                    showAlert = this@DetectorActivity::showAlert
             )
             detectionProcessor!!.initializeTrackingLayout(cropSize, Surface.ROTATION_90)
         }
@@ -300,6 +304,18 @@ class DetectorActivity : AppCompatActivity() {
         detector = DetectorFactory.createDetector(assets, options.model, MINIMUM_CONFIDENCE)
 
         return options.model.inputSize
+    }
+
+    private suspend fun showAlert(message: String) {
+        if (alert == null) {
+            CoroutineScope(Dispatchers.Main).launch {
+                alert = Alert(this@DetectorActivity, message)
+                alert!!.show()
+                delay(ALERT_TIMEOUT)
+                alert!!.hide()
+                alert = null
+            }
+        }
     }
 
 }
