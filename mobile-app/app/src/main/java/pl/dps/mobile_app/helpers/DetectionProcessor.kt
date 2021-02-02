@@ -1,10 +1,10 @@
 package pl.dps.mobile_app.helpers
 
+import android.content.Context
 import android.graphics.*
 import android.os.SystemClock
 import android.util.Log
 import android.util.TypedValue
-import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.view.PreviewView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,7 +19,7 @@ import pl.dps.detector.visualization.MultiBoxTracker
 import pl.dps.detector.visualization.OverlayView
 import kotlin.math.abs
 
-class DetectionProcessor(private var activity: AppCompatActivity?,
+class DetectionProcessor(private var context: Context?,
                          private var detector: Detector?,
                          private var options: DrivepalOptions?,
                          private var previewView: PreviewView?,
@@ -49,18 +49,21 @@ class DetectionProcessor(private var activity: AppCompatActivity?,
     private var previewHeight = 0
 
     fun release() {
-        activity = null
+        context = null
         detector = null
         options = null
         previewView = null
         trackingOverlay = null
+
+        alert = null
+        tracker = null
     }
 
     suspend fun initializeTrackingLayout(cropSize: Int, rotation: Int) {
         val textSizePx = TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP,
                 TEXT_SIZE_DIP,
-                activity!!.resources.displayMetrics
+                context!!.resources.displayMetrics
         )
 
         val borderedText = BorderedText(textSizePx)
@@ -68,7 +71,7 @@ class DetectionProcessor(private var activity: AppCompatActivity?,
         borderedText.setTypeface(Typeface.MONOSPACE)
 
         if (options!!.showBoundingBoxes) {
-            tracker = MultiBoxTracker(activity!!, showConfidence = false)
+            tracker = MultiBoxTracker(context!!, showConfidence = false)
         }
 
         previewWidth = previewView!!.width
@@ -94,10 +97,10 @@ class DetectionProcessor(private var activity: AppCompatActivity?,
         if (options!!.showBoundingBoxes) {
             trackingOverlay!!.addCallback(object : OverlayView.DrawCallback {
                 override fun drawCallback(canvas: Canvas) {
-                    tracker!!.draw(canvas)
+                    tracker?.draw(canvas)
                 }
             })
-            tracker!!.setFrameConfiguration(previewWidth, previewHeight, rotation)
+            tracker?.setFrameConfiguration(previewWidth, previewHeight, rotation)
         }
     }
 
@@ -155,8 +158,8 @@ class DetectionProcessor(private var activity: AppCompatActivity?,
         }
 
         if (options!!.showBoundingBoxes) {
-            tracker!!.trackResults(results.detections, imageStamp)
-            trackingOverlay!!.postInvalidate()
+            tracker?.trackResults(results.detections, imageStamp)
+            trackingOverlay?.postInvalidate()
         }
 
         return inferenceTime
@@ -218,7 +221,7 @@ class DetectionProcessor(private var activity: AppCompatActivity?,
 
     private suspend fun showAlert(message: String) {
         if (alert == null) {
-            alert = Alert(activity!!, message)
+            alert = Alert(context!!, message)
             alert!!.show()
             delay(ALERT_TIMEOUT)
             alert!!.hide()

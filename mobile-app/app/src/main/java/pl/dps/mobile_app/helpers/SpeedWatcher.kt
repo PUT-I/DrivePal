@@ -23,11 +23,11 @@ class SpeedWatcher(private val testSpeed: Boolean = false) : LocationListener {
                 testSpeedValue += 10.0f
             }
 
-            if (speed <= 0.0f) {
-                speed = 0.0f
+            if (testSpeedSlowdown && testSpeedValue < 0.0f) {
+                testSpeedValue = 0.0f
                 testSpeedSlowdown = false
-            } else if (speed >= 150.0f) {
-                speed = 150.0f
+            } else if (!testSpeedSlowdown && testSpeedValue > 150.0f) {
+                testSpeedValue = 150.0f
                 testSpeedSlowdown = true
             }
 

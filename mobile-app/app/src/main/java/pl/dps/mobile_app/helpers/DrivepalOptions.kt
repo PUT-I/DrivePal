@@ -20,25 +20,31 @@ class DrivepalOptions(prefs: SharedPreferences? = null) {
     var detectorServerUrl: String = "http://server.drivepal.pl:5001"
 
     init {
-        if (prefs != null) {
-            diagnosticsEnabled = prefs.getBoolean("diagnostics", false)
-            testSpeed = prefs.getBoolean("testSpeed", false)
-            showBoundingBoxes = prefs.getBoolean("boundingBoxes", false)
+        update(prefs)
+    }
 
-            pedestrianSpeedLimit =
-                    prefs.getInt("pedestrianCrossingSpeedLimit", 40).toFloat()
-            personSpeedLimit = prefs.getInt("personSpeedLimit", 40).toFloat()
-            stopSpeedLimit = prefs.getInt("stopSpeedLimit", 40).toFloat()
-
-            val modelStr = prefs.getString("model", "YOLO_V4_TINY_512_DRIVEPAL")
-            model = DetectionModel.valueOf(modelStr!!)
-            useRemoteDetector = prefs.getBoolean("useRemoteDetector", false)
-
-            diagnosticServerUrl =
-                    prefs.getString("model", "http://server.drivepal.pl:5000")!!
-            detectorServerUrl =
-                    prefs.getString("model", "http://server.drivepal.pl:5001")!!
+    fun update(prefs: SharedPreferences?) {
+        if (prefs == null) {
+            return
         }
+
+        diagnosticsEnabled = prefs.getBoolean("diagnostics", false)
+        testSpeed = prefs.getBoolean("testSpeed", false)
+        showBoundingBoxes = prefs.getBoolean("boundingBoxes", false)
+
+        pedestrianSpeedLimit =
+                prefs.getInt("pedestrianCrossingSpeedLimit", 40).toFloat()
+        personSpeedLimit = prefs.getInt("personSpeedLimit", 40).toFloat()
+        stopSpeedLimit = prefs.getInt("stopSpeedLimit", 40).toFloat()
+
+        val modelStr = prefs.getString("model", "YOLO_V4_TINY_512_DRIVEPAL")
+        model = DetectionModel.valueOf(modelStr!!)
+        useRemoteDetector = prefs.getBoolean("useRemoteDetector", false)
+
+        diagnosticServerUrl =
+                prefs.getString("model", "http://server.drivepal.pl:5000")!!
+        detectorServerUrl =
+                prefs.getString("model", "http://server.drivepal.pl:5001")!!
     }
 
 }
