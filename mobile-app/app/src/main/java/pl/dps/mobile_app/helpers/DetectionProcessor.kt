@@ -1,13 +1,11 @@
 package pl.dps.mobile_app.helpers
 
 import android.graphics.*
-import android.location.Location
 import android.os.SystemClock
 import android.util.Log
 import android.util.TypedValue
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.view.PreviewView
-import com.example.mobile_app.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -21,10 +19,12 @@ import pl.dps.detector.visualization.MultiBoxTracker
 import pl.dps.detector.visualization.OverlayView
 import kotlin.math.abs
 
-class DetectionProcessor(private val activity: AppCompatActivity,
-                         private val detector: Detector,
-                         private val options: DrivepalOptions,
-                         private val sendDetection: (JSONObject) -> Unit) {
+class DetectionProcessor(private var activity: AppCompatActivity?,
+                         private var detector: Detector?,
+                         private var options: DrivepalOptions?,
+                         private var previewView: PreviewView?,
+                         private var trackingOverlay: OverlayView?,
+                         private var sendDetection: (JSONObject) -> Unit) {
 
     companion object {
         private const val TAG = "DetectionProcessor"
@@ -42,36 +42,42 @@ class DetectionProcessor(private val activity: AppCompatActivity,
     private var cropCopyBitmap: Bitmap? = null
     private var frameToCropTransform: Matrix? = null
     private var cropToFrameTransform: Matrix? = null
-    private lateinit var trackingOverlay: OverlayView
     var tracker: MultiBoxTracker? = null
 
     /* Camera preview variables */
-    private var previewView: PreviewView = activity.findViewById(R.id.viewFinder)
     private var previewWidth = 0
     private var previewHeight = 0
+
+    fun release() {
+        activity = null
+        detector = null
+        options = null
+        previewView = null
+        trackingOverlay = null
+    }
 
     suspend fun initializeTrackingLayout(cropSize: Int, rotation: Int) {
         val textSizePx = TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP,
                 TEXT_SIZE_DIP,
-                activity.resources.displayMetrics
+                activity!!.resources.displayMetrics
         )
 
         val borderedText = BorderedText(textSizePx)
 
         borderedText.setTypeface(Typeface.MONOSPACE)
 
-        if (options.showBoundingBoxes) {
-            tracker = MultiBoxTracker(activity, showConfidence = false)
+        if (options!!.showBoundingBoxes) {
+            tracker = MultiBoxTracker(activity!!, showConfidence = false)
         }
 
-        previewWidth = previewView.width
-        previewHeight = previewView.height
+        previewWidth = previewView!!.width
+        previewHeight = previewView!!.height
 
         while (previewWidth == 0 || previewHeight == 0) {
             delay(200)
-            previewWidth = previewView.width
-            previewHeight = previewView.height
+            previewWidth = previewView!!.width
+            previewHeight = previewView!!.height
         }
 
         Log.i(TAG, String.format("Camera orientation relative to screen canvas: %d", rotation))
@@ -85,11 +91,8 @@ class DetectionProcessor(private val activity: AppCompatActivity,
         cropToFrameTransform = Matrix()
         frameToCropTransform!!.invert(cropToFrameTransform)
 
-        if (options.showBoundingBoxes) {
-            trackingOverlay = activity.findViewById(R.id.tracking_overlay)
-            trackingOverlay.removeCallbacks { }
-
-            trackingOverlay.addCallback(object : OverlayView.DrawCallback {
+        if (options!!.showBoundingBoxes) {
+            trackingOverlay!!.addCallback(object : OverlayView.DrawCallback {
                 override fun drawCallback(canvas: Canvas) {
                     tracker!!.draw(canvas)
                 }
@@ -100,19 +103,19 @@ class DetectionProcessor(private val activity: AppCompatActivity,
 
     fun processImage(bitmap: Bitmap,
                      imageStamp: Long,
-                     currentLocation: Location?,
+                     speed: Float,
                      sendDiagnostics: Boolean): Long {
 
-        if (options.showBoundingBoxes) {
-            trackingOverlay.postInvalidate()
+        if (options!!.showBoundingBoxes) {
+            trackingOverlay!!.postInvalidate()
         }
 
-        Log.i(TAG, "Running detection on image $imageStamp")
+        Log.v(TAG, "Running detection on image $imageStamp")
         val startTime = SystemClock.uptimeMillis()
-        val results = detector.recognizeImage(bitmap, returnImage = sendDiagnostics)
+        val results = detector!!.recognizeImage(bitmap, returnImage = sendDiagnostics)
         val inferenceTime: Long = SystemClock.uptimeMillis() - startTime
 
-        Log.i(TAG, "Recognized objects : " + results.detections.size)
+        Log.v(TAG, "Recognized objects : " + results.detections.size)
         cropCopyBitmap = Bitmap.createBitmap(croppedBitmap!!)
 
         val canvas = Canvas(cropCopyBitmap!!)
@@ -135,25 +138,25 @@ class DetectionProcessor(private val activity: AppCompatActivity,
             val className = result.className
 
             if (className == "Person") {
-                showAlertForPerson(boundingBox, currentLocation)
+                showAlertForPerson(boundingBox, speed)
             } else if (className.contains("Sign speed")) {
                 val tempSpeed = className.split(" ").last().toFloat()
                 if (tempSpeed > maxSpeedLimit) {
                     maxSpeedLimit = tempSpeed
                 }
             } else if (className in arrayOf("Sign stop", "Sign traffic ban", "Sign no entry")) {
-                showAlertForStopSign(currentLocation)
+                showAlertForStopSign(speed)
             } else if (className in arrayOf("Sign pedestrian crossing", "Sign children")) {
-                showAlertForPedestrianCrossingSign(currentLocation)
+                showAlertForPedestrianCrossingSign(speed)
             }
         }
         if (maxSpeedLimit >= 0.0f) {
-            showAlertForSpeedSign(currentLocation, maxSpeedLimit)
+            showAlertForSpeedSign(speed, maxSpeedLimit)
         }
 
-        if (options.showBoundingBoxes) {
+        if (options!!.showBoundingBoxes) {
             tracker!!.trackResults(results.detections, imageStamp)
-            trackingOverlay.postInvalidate()
+            trackingOverlay!!.postInvalidate()
         }
 
         return inferenceTime
@@ -164,7 +167,7 @@ class DetectionProcessor(private val activity: AppCompatActivity,
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                resultsJson.put("modelName", detector.getDetectionModel().toString())
+                resultsJson.put("modelName", detector!!.getDetectionModel().toString())
                 sendDetection(resultsJson)
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -172,9 +175,9 @@ class DetectionProcessor(private val activity: AppCompatActivity,
         }
     }
 
-    private fun showAlertForPerson(boundingBox: RectF, location: Location?) {
+    private fun showAlertForPerson(boundingBox: RectF, speed: Float) {
         val value = abs(0.5 - boundingBox.centerX() / previewWidth)
-        val speedCondition = location == null || location.speed >= options.personSpeedLimit
+        val speedCondition = speed < 0.0f || speed >= options!!.personSpeedLimit
 
         if (value < 0.1F && speedCondition && alert == null) {
             CoroutineScope(Dispatchers.Main).launch {
@@ -183,8 +186,8 @@ class DetectionProcessor(private val activity: AppCompatActivity,
         }
     }
 
-    private fun showAlertForStopSign(location: Location?) {
-        val speedCondition = location == null || location.speed >= options.stopSpeedLimit
+    private fun showAlertForStopSign(speed: Float) {
+        val speedCondition = speed < 0.0f || speed >= options!!.stopSpeedLimit
 
         if (speedCondition && alert == null) {
             CoroutineScope(Dispatchers.Main).launch {
@@ -193,8 +196,8 @@ class DetectionProcessor(private val activity: AppCompatActivity,
         }
     }
 
-    private fun showAlertForPedestrianCrossingSign(location: Location?) {
-        val speedCondition = location == null || location.speed >= options.pedestrianSpeedLimit
+    private fun showAlertForPedestrianCrossingSign(speed: Float) {
+        val speedCondition = speed < 0.0f || speed >= options!!.pedestrianSpeedLimit
 
         if (speedCondition && alert == null) {
             CoroutineScope(Dispatchers.Main).launch {
@@ -203,8 +206,8 @@ class DetectionProcessor(private val activity: AppCompatActivity,
         }
     }
 
-    private fun showAlertForSpeedSign(location: Location?, speedLimit: Float) {
-        val speedCondition = location == null || location.speed >= speedLimit
+    private fun showAlertForSpeedSign(speed: Float, speedLimit: Float) {
+        val speedCondition = speed < 0.0f || speed >= speedLimit
 
         if (speedCondition && alert == null) {
             CoroutineScope(Dispatchers.Main).launch {
@@ -215,7 +218,7 @@ class DetectionProcessor(private val activity: AppCompatActivity,
 
     private suspend fun showAlert(message: String) {
         if (alert == null) {
-            alert = Alert(activity, message)
+            alert = Alert(activity!!, message)
             alert!!.show()
             delay(ALERT_TIMEOUT)
             alert!!.hide()

@@ -5,8 +5,6 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.*
-import android.location.Location
-import android.location.LocationListener
 import android.location.LocationManager
 import android.os.*
 import android.provider.Settings
@@ -33,16 +31,19 @@ import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import leakcanary.AppWatcher
 import org.json.JSONObject
 import pl.dps.detector.Detector
 import pl.dps.detector.DetectorFactory
 import pl.dps.detector.utils.ImageUtils
+import pl.dps.detector.visualization.OverlayView
+import pl.dps.mobile_app.helpers.SpeedWatcher
 import pl.dps.mobile_app.helpers.DetectionProcessor
 import pl.dps.mobile_app.helpers.DrivepalOptions
 import pl.dps.mobile_app.helpers.ServerClient
 import pl.dps.mobile_app.helpers.Utils
 
-class DetectorActivity : AppCompatActivity(), LocationListener {
+class DetectorActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "DetectorActivity"
 
@@ -52,7 +53,7 @@ class DetectorActivity : AppCompatActivity(), LocationListener {
     private var options: DrivepalOptions = DrivepalOptions()
 
     /* Alert variables */
-    private var currentLocation: Location? = null
+    private lateinit var speedWatcher: SpeedWatcher
     private lateinit var locationManager: LocationManager
     private lateinit var speedText: TextView
 
@@ -73,12 +74,13 @@ class DetectorActivity : AppCompatActivity(), LocationListener {
     /* Detector variables */
     private var detectionProcessor: DetectionProcessor? = null
 
+
     /* Lifecycle methods */
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        queue = Volley.newRequestQueue(this)
+        queue = Volley.newRequestQueue(this.applicationContext)
         serverClient = ServerClient(queue, options.diagnosticServerUrl)
 
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -88,7 +90,7 @@ class DetectorActivity : AppCompatActivity(), LocationListener {
         speedText.text = getString(R.string.speed_text).format(0.0f)
 
         previewView = findViewById(R.id.viewFinder)
-        cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+        cameraProviderFuture = ProcessCameraProvider.getInstance(this.applicationContext)
         requestPermissions(arrayOf(Manifest.permission.CAMERA,
                 Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.ACCESS_COARSE_LOCATION
@@ -105,15 +107,25 @@ class DetectorActivity : AppCompatActivity(), LocationListener {
     override fun onResume() {
         super.onResume()
 
-        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this.applicationContext)
         options = DrivepalOptions(prefs)
+        AppWatcher.objectWatcher.expectWeaklyReachable(options, "Options has been created")
 
         val cropSize = initializeDetector()
+        val trackingOverlay: OverlayView = this@DetectorActivity.findViewById(R.id.tracking_overlay)
+        trackingOverlay.removeCallbacks { }
+
         lifecycleScope.launch(Dispatchers.Main) {
-            detectionProcessor = DetectionProcessor(this@DetectorActivity,
-                    detector!!,
-                    options,
-                    serverClient::sendDetection)
+            detectionProcessor?.release()
+            detectionProcessor = DetectionProcessor(
+                    activity = this@DetectorActivity,
+                    detector = detector!!,
+                    options = options,
+                    previewView = this@DetectorActivity.findViewById(R.id.viewFinder),
+                    trackingOverlay = trackingOverlay,
+                    sendDetection = serverClient::sendDetection
+            )
+            AppWatcher.objectWatcher.expectWeaklyReachable(detectionProcessor!!, "Detection processor created")
 
             detectionProcessor!!.initializeTrackingLayout(cropSize, Surface.ROTATION_90)
         }
@@ -129,7 +141,7 @@ class DetectorActivity : AppCompatActivity(), LocationListener {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.settings -> {
-                val intent = Intent(this, SettingsActivity::class.java)
+                val intent = Intent(this.applicationContext, SettingsActivity::class.java)
                 startActivity(intent)
             }
         }
@@ -151,7 +163,7 @@ class DetectorActivity : AppCompatActivity(), LocationListener {
                 startLocationManager()
             } else {
                 Toast.makeText(
-                        this,
+                        this.applicationContext,
                         "Permissions not granted by the user.",
                         Toast.LENGTH_SHORT
                 ).show()
@@ -160,46 +172,34 @@ class DetectorActivity : AppCompatActivity(), LocationListener {
         }
     }
 
-    private var testSpeedValue: Float = 100.0f
-    private var testSpeedSlowdown: Boolean = false
-
-    override fun onLocationChanged(location: Location) {
-        if (options.testSpeed) {
-            if (testSpeedSlowdown) {
-                testSpeedValue -= 10.0f
-            } else {
-                testSpeedValue += 10.0f
-            }
-
-            testSpeedSlowdown = testSpeedValue >= 150.0f
-
-            location.speed = testSpeedValue
-        } else {
-            location.speed *= 3.6f
-        }
-        currentLocation = location
-        speedText.text = getString(R.string.speed_text).format(location.speed)
-    }
-
     /* Other methods */
 
     private fun startLocationManager() {
         locationManager = this.getSystemService(LOCATION_SERVICE) as LocationManager
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+        if (ActivityCompat.checkSelfPermission(this.applicationContext, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                && ActivityCompat.checkSelfPermission(this.applicationContext, Manifest.permission.ACCESS_COARSE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             return
         }
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0f, this)
-        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0f, this)
+
+        speedWatcher = SpeedWatcher(options.testSpeed)
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
+                0,
+                0f,
+                speedWatcher)
+
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
+                0,
+                0f,
+                speedWatcher)
     }
 
     private fun startCamera() {
         cameraProviderFuture.addListener({
             val cameraProvider = cameraProviderFuture.get()
             bindPreview(cameraProvider)
-        }, ContextCompat.getMainExecutor(this))
+        }, ContextCompat.getMainExecutor(this.applicationContext))
     }
 
     private fun bindPreview(cameraProvider: ProcessCameraProvider) {
@@ -218,7 +218,8 @@ class DetectorActivity : AppCompatActivity(), LocationListener {
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
 
-        imageAnalysis.setAnalyzer(ContextCompat.getMainExecutor(this), ::analyzeImage)
+        imageAnalysis
+                .setAnalyzer(ContextCompat.getMainExecutor(this.applicationContext), ::analyzeImage)
 
         cameraProvider.bindToLifecycle(
                 this as LifecycleOwner,
@@ -233,15 +234,30 @@ class DetectorActivity : AppCompatActivity(), LocationListener {
         CoroutineScope(Dispatchers.IO).launch {
             imageStamp++
             val startTime = SystemClock.uptimeMillis()
-            val bmp = ImageUtils.imageToBitmap(image.image!!, applicationContext)
-            Log.i(TAG, "Conversion time : ${SystemClock.uptimeMillis() - startTime} ms")
+            val bitmap = ImageUtils.imageToBitmap(image.image!!, applicationContext)
+            Log.v(TAG, "Conversion time : ${SystemClock.uptimeMillis() - startTime} ms")
 
             val sendDiagnostics: Boolean = options.diagnosticsEnabled && imageStamp % 10 == 0L
 
-            val inferenceTime = detectionProcessor!!
-                    .processImage(bmp, imageStamp, currentLocation, sendDiagnostics)
+            val speed: Float = speedWatcher.getSpeed()
+            speedText.text = getString(R.string.speed_text)
+                    .format(if (speed < 0.0f) 0.0f else speed)
+
+            val inferenceTime: Long
+            try {
+                inferenceTime = detectionProcessor!!
+                        .processImage(bitmap, imageStamp, speed, sendDiagnostics)
+            } catch (exception: NullPointerException) {
+                Log.w(TAG, "NullPointerException probably due to change of detector")
+                exception.printStackTrace()
+                return@launch
+            }
+
+            bitmap.recycle()
+            Log.v(TAG, "Detection time : $inferenceTime ms")
 
             val processingTime = SystemClock.uptimeMillis() - startTime
+            Log.v(TAG, "Processing time : $processingTime ms")
 
             if (sendDiagnostics) {
                 val myJson = JSONObject()

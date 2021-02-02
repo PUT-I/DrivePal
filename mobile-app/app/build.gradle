@@ -3,7 +3,7 @@ apply plugin: 'kotlin-android'
 
 android {
     compileSdkVersion 30
-    buildToolsVersion "30.0.2"
+    buildToolsVersion "30.0.3"
     defaultConfig {
         applicationId "com.example.mobile_app"
         minSdkVersion 26
@@ -30,13 +30,15 @@ android {
 dependencies {
     implementation project(':AndroidTFLiteDetector.lib')
 
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.6'
+    releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:2.6'
+
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.4.2'
 
     implementation "androidx.camera:camera-camera2:1.0.0-rc01"
     implementation "androidx.camera:camera-lifecycle:1.0.0-rc01"
-    implementation "androidx.camera:camera-view:1.0.0-alpha20"
+    implementation "androidx.camera:camera-view:1.0.0-alpha21"
 
     implementation 'com.android.volley:volley:1.1.1'
 
