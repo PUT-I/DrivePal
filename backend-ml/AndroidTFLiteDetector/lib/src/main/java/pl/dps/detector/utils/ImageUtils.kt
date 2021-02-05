@@ -33,8 +33,9 @@ object ImageUtils {
         }
         val intValues = intValuesMap[inputSize * inputSize]!!
 
-        Bitmap.createScaledBitmap(bitmap, inputSize, inputSize, true)
-                .getPixels(intValues, 0, inputSize, 0, 0, inputSize, inputSize)
+        val scaledBitmap = Bitmap.createScaledBitmap(bitmap, inputSize, inputSize, true)
+        scaledBitmap.getPixels(intValues, 0, inputSize, 0, 0, inputSize, inputSize)
+        scaledBitmap.recycle()
 
         byteBuffer.clear()
         for (pixel in intValues) {
@@ -47,7 +48,7 @@ object ImageUtils {
             byteBuffer.put(b)
         }
 
-        Log.i(RemoteDetector.TAG, "ByteBuffer conversion time : ${SystemClock.uptimeMillis() - startTime} ms")
+        Log.v(RemoteDetector.TAG, "ByteBuffer conversion time : ${SystemClock.uptimeMillis() - startTime} ms")
     }
 
     fun encodeToBase64(image: Bitmap): String {

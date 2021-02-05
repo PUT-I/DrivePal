@@ -76,7 +76,7 @@ class MultiBoxTracker(context: Context, private val showConfidence: Boolean = tr
     }
 
     fun trackResults(results: List<Detection>, timestamp: Long) {
-        Log.i(TAG, String.format("Processing %d results from %d", results.size, timestamp))
+        Log.v(TAG, String.format("Processing %d results from %d", results.size, timestamp))
         processResults(results)
     }
 

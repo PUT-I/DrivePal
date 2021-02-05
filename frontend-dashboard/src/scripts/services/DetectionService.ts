@@ -40,6 +40,7 @@ export interface DetectionImage {
     modelName: string
 }
 
+
 export default {
     getAllDetections(): Promise<AxiosResponse<DetectionUrl[]>> {
         return axios.get(baseUrl, config);

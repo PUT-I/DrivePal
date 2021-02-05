@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.RectF
 import android.os.SystemClock
 import android.util.Log
+import leakcanary.AppWatcher
 import org.tensorflow.lite.Interpreter
 import pl.dps.detector.Detector.Detection
 import pl.dps.detector.enums.DetectionModel
@@ -50,20 +51,21 @@ internal class YoloV4Detector(assetManager: AssetManager,
         byteBuffer.order(ByteOrder.nativeOrder())
         intByteBuffer.order(ByteOrder.nativeOrder())
 
-        val actualFilename = detectionModel.labelFilePath
+        val labelsFilename = detectionModel.labelFilePath
                 .split("file:///android_asset/").toTypedArray()[1]
-        val labelsInput = assetManager.open(actualFilename)
-        val br = BufferedReader(InputStreamReader(labelsInput))
-        var line: String?
-        while (br.readLine().also { line = it } != null) {
-            if (line == null) {
-                break
-            }
+        val labelsFileInput = assetManager.open(labelsFilename)
 
-            Log.w(TAG, line!!)
-            labels.add(line!!)
+        BufferedReader(InputStreamReader(labelsFileInput)).use { bufferedReader ->
+            var line: String?
+            while (bufferedReader.readLine().also { line = it } != null) {
+                if (line == null) {
+                    break
+                }
+
+                Log.w(TAG, line!!)
+                labels.add(line!!)
+            }
         }
-        br.close()
         interpreter = initializeInterpreter(assetManager)
 
         imgData = ByteBuffer.allocateDirect(inputSize * inputSize * 3 * 4)
@@ -98,6 +100,8 @@ internal class YoloV4Detector(assetManager: AssetManager,
                     Bitmap.createBitmap(intValues, 0, inputSize, inputSize, inputSize, Bitmap.Config.ARGB_8888)
 
             val encodedImage = ImageUtils.encodeToBase64(shiftedBitmap)
+            shiftedBitmap.recycle()
+
             results.image = encodedImage
             results.imageSize = inputSize
         }
@@ -122,7 +126,9 @@ internal class YoloV4Detector(assetManager: AssetManager,
     private fun convertBitmapToByteBuffer(bitmap: Bitmap) {
         val startTime = SystemClock.uptimeMillis()
         val scaledBitmap = Bitmap.createScaledBitmap(bitmap, inputSize, inputSize, true)
+
         scaledBitmap.getPixels(intValues, 0, inputSize, 0, 0, inputSize, inputSize)
+        scaledBitmap.recycle()
 
         byteBuffer.clear()
         for (pixel in intValues) {
@@ -134,7 +140,7 @@ internal class YoloV4Detector(assetManager: AssetManager,
             byteBuffer.putFloat(g)
             byteBuffer.putFloat(b)
         }
-        Log.i(TAG, "ByteBuffer conversion time : ${SystemClock.uptimeMillis() - startTime} ms")
+        Log.v(TAG, "ByteBuffer conversion time : ${SystemClock.uptimeMillis() - startTime} ms")
     }
 
     private fun getDetections(byteBuffer: ByteBuffer, bitmap: Bitmap?): DetectionResults {

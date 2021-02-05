@@ -11,6 +11,7 @@ import java.util.*
  */
 class OverlayView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
     private val callbacks: MutableList<DrawCallback> = LinkedList()
+
     fun addCallback(callback: DrawCallback) {
         callbacks.add(callback)
     }
@@ -20,6 +21,10 @@ class OverlayView(context: Context, attrs: AttributeSet?) : View(context, attrs)
         for (callback in callbacks) {
             callback.drawCallback(canvas)
         }
+    }
+
+    fun removeCallbacks() {
+        callbacks.clear()
     }
 
     /**
